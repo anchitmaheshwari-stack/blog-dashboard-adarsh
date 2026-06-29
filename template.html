@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog pipeline dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<style>
+:root{
+  --color-background-primary:#ffffff;
+  --color-background-secondary:#f4f3ee;
+  --color-background-tertiary:#e9e7e0;
+  --color-background-info:#E6F1FB;
+  --color-border-tertiary:rgba(0,0,0,0.10);
+  --color-border-secondary:rgba(0,0,0,0.18);
+  --color-border-info:#378ADD;
+  --color-text-primary:#1a1a18;
+  --color-text-secondary:#5f5e5a;
+  --color-text-tertiary:#8a8980;
+  --color-text-info:#185FA5;
+  --border-radius-md:8px;
+  --border-radius-lg:12px;
+  --page-bg:#faf9f5;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --color-background-primary:#2b2a27;
+    --color-background-secondary:#34332f;
+    --color-background-tertiary:#3f3e39;
+    --color-background-info:#0C447C;
+    --color-border-tertiary:rgba(255,255,255,0.12);
+    --color-border-secondary:rgba(255,255,255,0.20);
+    --color-border-info:#378ADD;
+    --color-text-primary:#ECEAE3;
+    --color-text-secondary:#b4b2a9;
+    --color-text-tertiary:#888780;
+    --color-text-info:#85B7EB;
+    --page-bg:#1c1b19;
+  }
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--page-bg);
+  color:var(--color-text-primary);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  line-height:1.5;
+}
+.page{max-width:720px;margin:0 auto;padding:24px 20px 48px;}
+button{
+  font:inherit;font-size:14px;padding:7px 16px;
+  background:transparent;border:0.5px solid var(--color-border-secondary);
+  border-radius:var(--border-radius-md);color:var(--color-text-primary);
+  cursor:pointer;transition:background .12s;
+}
+button:hover{background:var(--color-background-secondary);}
+button:active{transform:scale(0.98);}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div style="padding:0.5rem 0;">
+<h2 class="sr-only">Single-month blog dashboard with a segmented published bar, a compare-months button revealing a vertical bar chart, expandable pipeline cards for the live month, and published-by-writer for closed months.</h2>
+
+<div style="display:flex; gap:8px; margin-bottom:1.5rem;" id="month-tabs">
+  <button data-m="March" style="flex:0 0 auto;">March</button>
+  <button data-m="April" style="flex:0 0 auto;">April</button>
+  <button data-m="May" style="flex:0 0 auto;">May</button>
+  <button data-m="June" style="flex:0 0 auto;">June</button>
+</div>
+
+<div style="background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-lg); padding:1.1rem 1.25rem; margin-bottom:1.25rem;">
+  <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px;">
+    <div style="font-size:15px; font-weight:500;">Published <span id="pub-month" style="color:var(--color-text-secondary); font-weight:400;">in June</span></div>
+    <div style="font-size:30px; font-weight:500; line-height:1;" id="pub-total">22</div>
+  </div>
+  <div style="display:flex; height:34px; border-radius:var(--border-radius-md); overflow:hidden; gap:3px;">
+    <div id="seg-new" style="width:82%; background:#534AB7; display:flex; align-items:center; padding:0 12px; color:#fff;">
+      <span style="font-size:13px;">New</span><span id="seg-new-n" style="font-size:14px; font-weight:500; margin-left:auto;">18</span>
+    </div>
+    <div id="seg-opt" style="width:18%; background:#D85A30; display:flex; align-items:center; padding:0 8px; color:#fff;">
+      <span id="seg-opt-n" style="font-size:14px; font-weight:500; margin-left:auto;">4</span>
+    </div>
+  </div>
+  <div style="display:flex; justify-content:space-between; margin-top:7px; font-size:12px; color:var(--color-text-tertiary);">
+    <span id="seg-new-p">New 82%</span><span id="seg-opt-p">Optimized 18%</span>
+  </div>
+  <div style="display:flex; justify-content:flex-end; margin-top:12px; padding-top:11px; border-top:0.5px solid var(--color-border-tertiary);">
+    <button id="cmp-btn" style="flex:0 0 auto;"><i class="ti ti-chart-bar" style="font-size:15px; vertical-align:-2px; margin-right:6px" aria-hidden="true"></i>Compare months</button>
+  </div>
+</div>
+
+<div id="cmp-panel" style="display:none; background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-lg); padding:1.1rem 1.25rem; margin-bottom:1.25rem;">
+  <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
+    <div style="font-size:15px; font-weight:500;">Published, month on month</div>
+    <div style="display:flex; gap:14px; font-size:12px; color:var(--color-text-secondary);">
+      <span><span style="display:inline-block; width:9px; height:9px; background:#534AB7; border-radius:2px; margin-right:5px;"></span>New</span>
+      <span><span style="display:inline-block; width:9px; height:9px; background:#D85A30; border-radius:2px; margin-right:5px;"></span>Optimized</span>
+    </div>
+  </div>
+  <div style="display:flex; align-items:flex-end; gap:24px; height:190px; padding:18px 8px 0;">
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
+      <div style="font-size:13px; font-weight:500; margin-bottom:6px;">22</div>
+      <div style="width:48px; display:flex; flex-direction:column; justify-content:flex-end; height:150px;">
+        <div style="height:12px; background:#D85A30; border-radius:4px 4px 0 0;"></div>
+        <div style="height:120px; background:#534AB7; border-radius:0 0 4px 4px;"></div>
+      </div>
+      <div style="font-size:13px; color:var(--color-text-secondary); margin-top:8px;">March</div>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
+      <div style="font-size:13px; font-weight:500; margin-bottom:6px;">25</div>
+      <div style="width:48px; display:flex; flex-direction:column; justify-content:flex-end; height:150px;">
+        <div style="height:12px; background:#D85A30; border-radius:4px 4px 0 0;"></div>
+        <div style="height:138px; background:#534AB7; border-radius:0 0 4px 4px;"></div>
+      </div>
+      <div style="font-size:13px; color:var(--color-text-secondary); margin-top:8px;">April</div>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
+      <div style="font-size:13px; font-weight:500; margin-bottom:6px;">20</div>
+      <div style="width:48px; display:flex; flex-direction:column; justify-content:flex-end; height:150px;">
+        <div style="height:30px; background:#D85A30; border-radius:4px 4px 0 0;"></div>
+        <div style="height:90px; background:#534AB7; border-radius:0 0 4px 4px;"></div>
+      </div>
+      <div style="font-size:13px; color:var(--color-text-secondary); margin-top:8px;">May</div>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
+      <div style="font-size:13px; font-weight:500; margin-bottom:6px;">22</div>
+      <div style="width:48px; display:flex; flex-direction:column; justify-content:flex-end; height:150px;">
+        <div style="height:24px; background:#D85A30; border-radius:4px 4px 0 0;"></div>
+        <div style="height:108px; background:#534AB7; border-radius:0 0 4px 4px;"></div>
+      </div>
+      <div style="font-size:13px; color:var(--color-text-secondary); margin-top:8px;">June</div>
+    </div>
+  </div>
+</div>
+
+<div id="live-view">
+  <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;">
+    <div style="font-size:15px; font-weight:500;">Current pipeline</div>
+    <div style="font-size:12px; color:var(--color-text-tertiary);">click a card to see articles</div>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:12px; margin-bottom:14px;" id="cards"></div>
+  <div id="detail" style="background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-lg); padding:1.1rem 1.25rem; min-height:60px;"></div>
+  <div id="needs-status" style="font-size:12px; color:var(--color-text-secondary); margin-top:10px;"></div>
+</div>
+
+<div id="closed-view" style="display:none;">
+  <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;">
+    <div style="font-size:15px; font-weight:500;">Published by writer</div>
+    <div style="font-size:12px; color:var(--color-text-tertiary);" id="closed-sub">month closed</div>
+  </div>
+  <div style="display:flex; align-items:center; gap:12px; padding-bottom:8px; border-bottom:0.5px solid var(--color-border-tertiary); margin-bottom:10px;">
+    <span style="width:110px;"></span>
+    <span style="flex:1; font-size:12px; color:var(--color-text-tertiary);">New / optimized</span>
+    <span style="font-size:12px; color:var(--color-text-tertiary); width:30px; text-align:right;">Total</span>
+  </div>
+  <div id="closed-rows" style="display:flex; flex-direction:column; gap:11px;"></div>
+</div>
+
+</div>
+
+<script>
+var LIVE = __LIVE__;
+var CLOSED = __CLOSED__;
+var STAGE_ORDER=['outline','pending','feedback','ready'];
+var activeStage='pending';
+function setActive(m){
+  document.querySelectorAll('#month-tabs button').forEach(function(b){
+    var on=b.dataset.m===m;
+    b.style.background=on?'var(--color-background-info)':'transparent';
+    b.style.color=on?'var(--color-text-info)':'var(--color-text-primary)';
+    b.style.borderColor=on?'var(--color-border-info)':'var(--color-border-secondary)';
+  });
+}
+function tag(a){
+  var coral=a==='Optimize';
+  var fg=coral?'#993C1D':'#185FA5';
+  var bg=coral?'#FAECE7':'#E6F1FB';
+  return '<span style="font-size:11px;font-weight:500;background:'+bg+';color:'+fg+';padding:2px 9px;border-radius:var(--border-radius-md);flex:0 0 auto">'+a+'</span>';
+}
+function avatarMeta(n){
+  if(n==='Adarsh') return {bg:'#FAECE7',fg:'#993C1D'};
+  if(n==='Unassigned') return {bg:'#F1EFE8',fg:'#444441'};
+  return {bg:'#EEEDFE',fg:'#3C3489'};
+}
+function initials(n){
+  var w=n.trim().split(/\s+/);
+  if(w.length>1) return (w[0][0]+w[1][0]).toUpperCase();
+  return n.slice(0,2);
+}
+function renderDetail(stage){
+  activeStage=stage;
+  var st=LIVE.stages[stage];
+  document.querySelectorAll('#cards .pcard').forEach(function(c){
+    var on=c.dataset.s===stage;
+    c.style.borderColor=on?'var(--color-border-info)':'transparent';
+    c.style.borderWidth=on?'2px':'0.5px';
+  });
+  var d=document.getElementById('detail');
+  if(!st.items.length){d.innerHTML='<div style="font-size:13px;color:var(--color-text-secondary)">Nothing in '+st.label.toLowerCase()+' yet.</div>';return;}
+  var byW={};
+  st.items.forEach(function(i){(byW[i.w]=byW[i.w]||[]).push(i);});
+  var names=Object.keys(byW).sort(function(a,b){return byW[b].length-byW[a].length;});
+  d.innerHTML='<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:18px">'+st.label+' \u00b7 '+st.items.length+' total</div>'
+    +names.map(function(n){
+      var am=avatarMeta(n);
+      var rows=byW[n].map(function(i,idx){
+        var last=idx===byW[n].length-1;
+        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:'+(last?'none':'0.5px solid var(--color-border-tertiary)')+'">'
+          +'<span style="font-size:14px;color:var(--color-text-primary)">'+i.t+'</span>'+tag(i.a)+'</div>';
+      }).join('');
+      return '<div style="margin-bottom:20px">'
+        +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'
+          +'<div style="width:26px;height:26px;border-radius:50%;background:'+am.bg+';color:'+am.fg+';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex:0 0 auto">'+initials(n)+'</div>'
+          +'<span style="font-size:14px;font-weight:500">'+n+'</span>'
+          +'<span style="font-size:12px;color:var(--color-text-secondary);background:var(--color-background-secondary);padding:1px 9px;border-radius:var(--border-radius-md)">'+byW[n].length+'</span>'
+        +'</div>'
+        +'<div style="padding-left:36px">'+rows+'</div>'
+      +'</div>';
+    }).join('');
+}
+function renderLive(){
+  document.getElementById('live-view').style.display='block';
+  document.getElementById('closed-view').style.display='none';
+  var cards=document.getElementById('cards');
+  cards.innerHTML=STAGE_ORDER.map(function(s){
+    var st=LIVE.stages[s]; var isNew=s==='ready';
+    return '<div class="pcard" data-s="'+s+'" style="cursor:pointer;background:var(--color-background-secondary);border:0.5px solid transparent;border-radius:var(--border-radius-md);padding:1rem">'
+      +'<div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--color-text-secondary)">'+st.label+(isNew?' <span style="font-size:10px;background:var(--color-background-info);color:var(--color-text-info);padding:1px 6px;border-radius:var(--border-radius-md)">new</span>':'')+'</div>'
+      +'<div style="font-size:24px;font-weight:500;display:flex;align-items:center;gap:8px">'+st.items.length+' <i class="ti ti-chevron-right" style="font-size:15px;color:var(--color-text-tertiary)" aria-hidden="true"></i></div></div>';
+  }).join('');
+  cards.querySelectorAll('.pcard').forEach(function(c){c.addEventListener('click',function(){renderDetail(c.dataset.s);});});
+  document.getElementById('needs-status').innerHTML=LIVE.needsStatus?'<i class="ti ti-alert-circle" style="font-size:14px;vertical-align:-2px;margin-right:5px" aria-hidden="true"></i>'+LIVE.needsStatus+' rows have no status, so they sit outside every card.':'';
+  renderDetail(activeStage);
+}
+function renderClosed(m){
+  document.getElementById('live-view').style.display='none';
+  document.getElementById('closed-view').style.display='block';
+  var d=CLOSED[m];
+  document.getElementById('closed-sub').textContent=m+' closed \u00b7 '+d.pub+' published';
+  var rows=document.getElementById('closed-rows');
+  var max=Math.max.apply(null,d.writers.map(function(w){return w.nw+w.op;}).concat([1]));
+  rows.innerHTML=d.writers.map(function(w){
+    var tot=w.nw+w.op; var nwid=Math.round(w.nw/max*100); var owid=Math.round(w.op/max*100);
+    return '<div style="display:flex;align-items:center;gap:12px">'
+      +'<span style="font-size:13px;width:110px;color:var(--color-text-secondary)">'+w.n+'</span>'
+      +'<div style="flex:1;height:8px;display:flex;background:var(--color-background-tertiary);border-radius:var(--border-radius-md);overflow:hidden">'
+        +'<div style="height:8px;width:'+nwid+'%;background:#534AB7"></div><div style="height:8px;width:'+owid+'%;background:#D85A30"></div></div>'
+      +'<span style="font-size:13px;font-weight:500;width:30px;text-align:right">'+tot+'</span></div>';
+  }).join('');
+}
+function render(m){
+  setActive(m);
+  var d = (m==='June')?LIVE:CLOSED[m];
+  var tot=d.new+d.opt||1;
+  var pn=Math.round(d.new/tot*100), po=100-pn;
+  document.getElementById('pub-month').textContent='in '+m;
+  document.getElementById('pub-total').textContent=d.pub;
+  document.getElementById('seg-new').style.width=pn+'%';
+  document.getElementById('seg-opt').style.width=po+'%';
+  document.getElementById('seg-new-n').textContent=d.new;
+  document.getElementById('seg-opt-n').textContent=d.opt;
+  document.getElementById('seg-new-p').textContent='New '+pn+'%';
+  document.getElementById('seg-opt-p').textContent='Optimized '+po+'%';
+  if(m==='June'){renderLive();}else{renderClosed(m);}
+}
+document.querySelectorAll('#month-tabs button').forEach(function(b){b.addEventListener('click',function(){render(b.dataset.m);});});
+var cmpBtn=document.getElementById('cmp-btn');
+cmpBtn.addEventListener('click',function(){
+  var p=document.getElementById('cmp-panel');
+  var open=p.style.display==='none';
+  p.style.display=open?'block':'none';
+  cmpBtn.innerHTML=(open?'<i class="ti ti-x" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Hide comparison':'<i class="ti ti-chart-bar" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Compare months');
+});
+render('June');
+</script>
+
+</div>
+</body>
+</html>
