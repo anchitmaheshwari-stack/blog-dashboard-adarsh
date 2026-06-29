@@ -142,6 +142,8 @@ button:active{transform:scale(0.98);}
     <div style="font-size:12px; color:var(--color-text-tertiary);">click a card to see articles</div>
   </div>
   <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:12px; margin-bottom:14px;" id="cards"></div>
+  <div style="display:flex; justify-content:flex-end; margin-bottom:12px;"><button id="live-split-btn" style="flex:0 0 auto;"><i class="ti ti-chart-bar" style="font-size:15px; vertical-align:-2px; margin-right:6px" aria-hidden="true"></i>Show published by writer</button></div>
+  <div id="live-split" style="display:none; background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-lg); padding:1.1rem 1.25rem; margin-bottom:14px;"></div>
   <div id="detail" style="background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-lg); padding:1.1rem 1.25rem; min-height:60px;"></div>
   <div id="needs-status" style="font-size:12px; color:var(--color-text-secondary); margin-top:10px;"></div>
 </div>
@@ -208,8 +210,11 @@ function renderDetail(stage){
       var am=avatarMeta(n);
       var rows=byW[n].map(function(i,idx){
         var last=idx===byW[n].length-1;
+        var titleHtml = (i.url)
+          ? '<a href="'+i.url+'" target="_blank" rel="noopener" style="font-size:14px;color:var(--color-text-info);text-decoration:none" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">'+i.t+'</a>'
+          : '<span style="font-size:14px;color:var(--color-text-primary)">'+i.t+'</span>';
         return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:'+(last?'none':'0.5px solid var(--color-border-tertiary)')+'">'
-          +'<span style="font-size:14px;color:var(--color-text-primary)">'+i.t+'</span>'+tag(i.a)+'</div>';
+          +titleHtml+tag(i.a)+'</div>';
       }).join('');
       return '<div style="margin-bottom:20px">'
         +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'
@@ -233,8 +238,34 @@ function renderLive(){
   }).join('');
   cards.querySelectorAll('.pcard').forEach(function(c){c.addEventListener('click',function(){renderDetail(c.dataset.s);});});
   document.getElementById('needs-status').innerHTML=LIVE.needsStatus?'<i class="ti ti-alert-circle" style="font-size:14px;vertical-align:-2px;margin-right:5px" aria-hidden="true"></i>'+LIVE.needsStatus+' rows have no status, so they sit outside every card.':'';
+  var sb=document.getElementById('live-split-btn');
+  var sp=document.getElementById('live-split');
+  sp.style.display='none';
+  sb.innerHTML='<i class="ti ti-chart-bar" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Show published by writer';
+  sb.onclick=function(){
+    var open=sp.style.display==='none';
+    sp.style.display=open?'block':'none';
+    sb.innerHTML=(open?'<i class="ti ti-x" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Hide published by writer':'<i class="ti ti-chart-bar" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Show published by writer');
+    if(open) renderLiveSplit();
+  };
   renderDetail(activeStage);
 }
+function renderLiveSplit(){
+  var box=document.getElementById('live-split');
+  var ws=LIVE.writers||[];
+  if(!ws.length){box.innerHTML='<div style="font-size:13px;color:var(--color-text-secondary)">Nothing published in '+LIVE_MONTH_LABEL+' yet.</div>';return;}
+  var max=Math.max.apply(null,ws.map(function(w){return w.nw+w.op;}).concat([1]));
+  box.innerHTML='<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:12px">Published by writer \u00b7 '+LIVE.pub+' total</div>'
+    +ws.map(function(w){
+      var tot=w.nw+w.op; var nwid=Math.round(w.nw/max*100); var owid=Math.round(w.op/max*100);
+      return '<div style="display:flex;align-items:center;gap:12px;margin-bottom:11px">'
+        +'<span style="font-size:13px;width:110px;color:var(--color-text-secondary)">'+w.n+'</span>'
+        +'<div style="flex:1;height:8px;display:flex;background:var(--color-background-tertiary);border-radius:var(--border-radius-md);overflow:hidden">'
+          +'<div style="height:8px;width:'+nwid+'%;background:#534AB7"></div><div style="height:8px;width:'+owid+'%;background:#D85A30"></div></div>'
+        +'<span style="font-size:13px;font-weight:500;width:30px;text-align:right">'+tot+'</span></div>';
+    }).join('');
+}
+var LIVE_MONTH_LABEL='June';
 function renderClosed(m){
   document.getElementById('live-view').style.display='none';
   document.getElementById('closed-view').style.display='block';
@@ -264,7 +295,7 @@ function render(m){
   document.getElementById('seg-opt-n').textContent=d.opt;
   document.getElementById('seg-new-p').textContent='New '+pn+'%';
   document.getElementById('seg-opt-p').textContent='Optimized '+po+'%';
-  if(m==='June'){renderLive();}else{renderClosed(m);}
+  if(m==='June'){LIVE_MONTH_LABEL=m;renderLive();}else{renderClosed(m);}
 }
 document.querySelectorAll('#month-tabs button').forEach(function(b){b.addEventListener('click',function(){render(b.dataset.m);});});
 var cmpBtn=document.getElementById('cmp-btn');
