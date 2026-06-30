@@ -167,6 +167,7 @@ button:active{transform:scale(0.98);}
 <script>
 var LIVE = {"pub":0,"new":0,"opt":0,"stages":{"outline":{"label":"Outlines with writers","items":[{"w":"Transcurators","a":"New","t":"dtaa-guide-india","url":"https://docs.google.com/document/d/1FpcRGI7M9uiGNBKyL8m3ae0Hp7bVkTyS/edit"},{"w":"Transcurators","a":"New","t":"international-payment-gateway","url":"https://docs.google.com/document/d/1Fa6-LDpBYVN3pV6D69X2oVSTA8VjHqX1/edit"},{"w":"Transcurators","a":"New","t":"what-is-international-banking","url":"https://docs.google.com/document/d/1aVXpBikcpxeEA-hroojXqNh58XK4Lj1u/edit"}]},"pending":{"label":"Articles pending review","items":[{"w":"Sreyashi","a":"New","t":"Business Banking Accounts Comparison","url":""},{"w":"Tanoy","a":"Optimize","t":"payment terms in export (refresh)","url":""},{"w":"Tanoy","a":"Optimize","t":"how to find buyers for export from india (refresh)","url":""},{"w":"Tanoy","a":"Optimize","t":"compliance guideline for inward remittance (refresh)","url":""},{"w":"Sreyashi","a":"Optimize","t":"what is the utr number for rtgs and neft (refresh)","url":""},{"w":"Sreyashi","a":"Optimize","t":"decoding gst on foreign exchange (refresh)","url":""},{"w":"Sreyashi","a":"Optimize","t":"Icegate revamp (refresh)","url":""},{"w":"Sreyashi","a":"New","t":"global payout challenges","url":""},{"w":"Sreyashi","a":"New","t":"International Finance Outline","url":""},{"w":"Sreyashi","a":"New","t":"Global Mass Payouts Outline","url":""},{"w":"Sreyashi","a":"New","t":"Reasons to hire Indian employees","url":""},{"w":"Sreyashi","a":"New","t":"Certificate of Origin Outline","url":"https://docs.google.com/document/d/1zma_A5uX9yeKH2Ava1C2a4wULQMruJc1WJC31NxIGx4/edit?tab=t.0"}]},"feedback":{"label":"Feedback given to writers","items":[{"w":"Transcurators","a":"New","t":"Bank Charges for Foreign Remittance","url":""},{"w":"Sreyashi","a":"Optimize","t":"how to get firc certificate online (refresh)","url":""},{"w":"Transcurators","a":"New","t":"Foreign Transaction fees","url":""},{"w":"Transcurators","a":"New","t":"mt202-swift-message","url":"https://docs.google.com/document/d/12YQmQQILj6L_IVKTfdGofc88ifcc8Q_ZCpcQf-WtseU/edit?usp=sharing"}]},"ready":{"label":"Ready to publish","items":[]}},"needsStatus":6,"writers":[]};
 var CLOSED = {"June":{"pub":29,"new":24,"opt":5,"writers":[{"n":"Transcurators","nw":9,"op":0},{"n":"Tanoy","nw":7,"op":0},{"n":"Das Writing","nw":5,"op":0},{"n":"Adarsh","nw":0,"op":5},{"n":"Sreyashi","nw":3,"op":0}]},"May":{"pub":20,"new":15,"opt":5,"writers":[{"n":"Tanoy","nw":6,"op":0},{"n":"Adarsh","nw":0,"op":5},{"n":"Sreyashi","nw":4,"op":0},{"n":"Das Writing","nw":3,"op":0},{"n":"Transcurators","nw":2,"op":0}]},"April":{"pub":25,"new":23,"opt":2,"writers":[{"n":"Transcurators","nw":9,"op":0},{"n":"Das Writing","nw":9,"op":0},{"n":"Sreyashi","nw":3,"op":0},{"n":"Adarsh","nw":1,"op":2},{"n":"Tanoy","nw":1,"op":0}]},"March":{"pub":22,"new":20,"opt":2,"writers":[{"n":"Tanoy","nw":7,"op":0},{"n":"Sreyashi","nw":6,"op":0},{"n":"Transcurators","nw":5,"op":0},{"n":"Das Writing","nw":2,"op":0},{"n":"Unassigned","nw":0,"op":2}]}};
+var LIVE_MONTH = "July";
 var STAGE_ORDER=['outline','pending','feedback','ready'];
 var activeStage='pending';
 function setActive(m){
@@ -266,11 +267,19 @@ function renderLiveSplit(){
         +'<span style="font-size:13px;font-weight:500;width:30px;text-align:right">'+tot+'</span></div>';
     }).join('');
 }
-var LIVE_MONTH_LABEL='June';
+var LIVE_MONTH_LABEL=LIVE_MONTH;
 function renderClosed(m){
   document.getElementById('live-view').style.display='none';
   document.getElementById('closed-view').style.display='block';
   var d=CLOSED[m];
+  if(!d){
+    document.getElementById('closed-sub').textContent=m+' \u00b7 no data';
+    document.getElementById('closed-rows').innerHTML='<div style="font-size:13px;color:var(--color-text-secondary)">No published data for '+m+' yet.</div>';
+    document.getElementById('pub-total').textContent='0';
+    document.getElementById('seg-new-n').textContent='0';
+    document.getElementById('seg-opt-n').textContent='0';
+    return;
+  }
   document.getElementById('closed-sub').textContent=m+' closed \u00b7 '+d.pub+' published';
   var rows=document.getElementById('closed-rows');
   var max=Math.max.apply(null,d.writers.map(function(w){return w.nw+w.op;}).concat([1]));
@@ -285,7 +294,8 @@ function renderClosed(m){
 }
 function render(m){
   setActive(m);
-  var d = (m==='June')?LIVE:CLOSED[m];
+  var d = (m===LIVE_MONTH)?LIVE:CLOSED[m];
+  if(!d){ document.getElementById('pub-month').textContent='in '+m; renderClosed(m); return; }
   var tot=d.new+d.opt||1;
   var pn=Math.round(d.new/tot*100), po=100-pn;
   document.getElementById('pub-month').textContent='in '+m;
@@ -296,7 +306,7 @@ function render(m){
   document.getElementById('seg-opt-n').textContent=d.opt;
   document.getElementById('seg-new-p').textContent='New '+pn+'%';
   document.getElementById('seg-opt-p').textContent='Optimized '+po+'%';
-  if(m==='June'){LIVE_MONTH_LABEL=m;renderLive();}else{renderClosed(m);}
+  if(m===LIVE_MONTH){LIVE_MONTH_LABEL=m;renderLive();}else{renderClosed(m);}
 }
 document.querySelectorAll('#month-tabs button').forEach(function(b){b.addEventListener('click',function(){render(b.dataset.m);});});
 var cmpBtn=document.getElementById('cmp-btn');
@@ -306,7 +316,7 @@ cmpBtn.addEventListener('click',function(){
   p.style.display=open?'block':'none';
   cmpBtn.innerHTML=(open?'<i class="ti ti-x" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Hide comparison':'<i class="ti ti-chart-bar" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Compare months');
 });
-render('June');
+render(LIVE_MONTH);
 </script>
 
 </div>
