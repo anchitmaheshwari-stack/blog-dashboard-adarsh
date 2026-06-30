@@ -167,6 +167,7 @@ button:active{transform:scale(0.98);}
 <script>
 var LIVE = __LIVE__;
 var CLOSED = __CLOSED__;
+var LIVE_MONTH = __LIVE_MONTH__;
 var STAGE_ORDER=['outline','pending','feedback','ready'];
 var activeStage='pending';
 function setActive(m){
@@ -266,11 +267,19 @@ function renderLiveSplit(){
         +'<span style="font-size:13px;font-weight:500;width:30px;text-align:right">'+tot+'</span></div>';
     }).join('');
 }
-var LIVE_MONTH_LABEL='June';
+var LIVE_MONTH_LABEL=LIVE_MONTH;
 function renderClosed(m){
   document.getElementById('live-view').style.display='none';
   document.getElementById('closed-view').style.display='block';
   var d=CLOSED[m];
+  if(!d){
+    document.getElementById('closed-sub').textContent=m+' \u00b7 no data';
+    document.getElementById('closed-rows').innerHTML='<div style="font-size:13px;color:var(--color-text-secondary)">No published data for '+m+' yet.</div>';
+    document.getElementById('pub-total').textContent='0';
+    document.getElementById('seg-new-n').textContent='0';
+    document.getElementById('seg-opt-n').textContent='0';
+    return;
+  }
   document.getElementById('closed-sub').textContent=m+' closed \u00b7 '+d.pub+' published';
   var rows=document.getElementById('closed-rows');
   var max=Math.max.apply(null,d.writers.map(function(w){return w.nw+w.op;}).concat([1]));
@@ -285,7 +294,8 @@ function renderClosed(m){
 }
 function render(m){
   setActive(m);
-  var d = (m==='June')?LIVE:CLOSED[m];
+  var d = (m===LIVE_MONTH)?LIVE:CLOSED[m];
+  if(!d){ document.getElementById('pub-month').textContent='in '+m; renderClosed(m); return; }
   var tot=d.new+d.opt||1;
   var pn=Math.round(d.new/tot*100), po=100-pn;
   document.getElementById('pub-month').textContent='in '+m;
@@ -296,7 +306,7 @@ function render(m){
   document.getElementById('seg-opt-n').textContent=d.opt;
   document.getElementById('seg-new-p').textContent='New '+pn+'%';
   document.getElementById('seg-opt-p').textContent='Optimized '+po+'%';
-  if(m==='June'){LIVE_MONTH_LABEL=m;renderLive();}else{renderClosed(m);}
+  if(m===LIVE_MONTH){LIVE_MONTH_LABEL=m;renderLive();}else{renderClosed(m);}
 }
 document.querySelectorAll('#month-tabs button').forEach(function(b){b.addEventListener('click',function(){render(b.dataset.m);});});
 var cmpBtn=document.getElementById('cmp-btn');
@@ -306,7 +316,7 @@ cmpBtn.addEventListener('click',function(){
   p.style.display=open?'block':'none';
   cmpBtn.innerHTML=(open?'<i class="ti ti-x" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Hide comparison':'<i class="ti ti-chart-bar" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Compare months');
 });
-render('June');
+render(LIVE_MONTH);
 </script>
 
 </div>
