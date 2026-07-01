@@ -88,10 +88,13 @@ button:active{transform:scale(0.98);}
   <div style="display:flex; justify-content:space-between; margin-top:7px; font-size:12px; color:var(--color-text-tertiary);">
     <span id="seg-new-p">New 82%</span><span id="seg-opt-p">Optimized 18%</span>
   </div>
-  <div style="display:flex; justify-content:flex-end; margin-top:12px; padding-top:11px; border-top:0.5px solid var(--color-border-tertiary);">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:11px; border-top:0.5px solid var(--color-border-tertiary);">
+    <span style="font-size:12px; color:var(--color-text-tertiary);">click a bar to see articles</span>
     <button id="cmp-btn" style="flex:0 0 auto;"><i class="ti ti-chart-bar" style="font-size:15px; vertical-align:-2px; margin-right:6px" aria-hidden="true"></i>Compare months</button>
   </div>
 </div>
+
+<div id="hero-detail" style="display:none; background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-lg); padding:1.1rem 1.25rem; margin-bottom:1.25rem;"></div>
 
 <div id="cmp-panel" style="display:none; background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-lg); padding:1.1rem 1.25rem; margin-bottom:1.25rem;">
   <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
@@ -101,7 +104,7 @@ button:active{transform:scale(0.98);}
       <span><span style="display:inline-block; width:9px; height:9px; background:#D85A30; border-radius:2px; margin-right:5px;"></span>Optimized</span>
     </div>
   </div>
-  <div id="mom-bars" style="display:flex; align-items:flex-end; gap:24px; height:190px; padding:18px 8px 0;"></div>
+  <div id="mom-chart" style="padding:14px 4px 4px;"></div>
 </div>
 
 <div id="live-view">
@@ -161,6 +164,60 @@ function initials(n){
   if(w.length>1) return (w[0][0]+w[1][0]).toUpperCase();
   return n.slice(0,2);
 }
+var CUR=null;
+function articleRow(i,last){
+  var titleHtml=(i.url)
+    ? '<a href="'+i.url+'" target="_blank" rel="noopener" style="font-size:14px;color:var(--color-text-info);text-decoration:none" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">'+i.t+'</a>'
+    : '<span style="font-size:14px;color:var(--color-text-primary)">'+i.t+'</span>';
+  return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:'+(last?'none':'0.5px solid var(--color-border-tertiary)')+'">'+titleHtml+tag(i.a)+'</div>';
+}
+function renderWriterBars(box, ws, pubItems, emptyLabel){
+  if(!ws || !ws.length){ box.innerHTML='<div style="font-size:13px;color:var(--color-text-secondary)">'+(emptyLabel||'Nothing published yet.')+'</div>'; return; }
+  var max=Math.max.apply(null,ws.map(function(w){return w.nw+w.op;}).concat([1]));
+  box.innerHTML=ws.map(function(w){
+    var tot=w.nw+w.op; var nwid=Math.round(w.nw/max*100); var owid=Math.round(w.op/max*100);
+    return '<div>'
+      +'<div class="wrow" data-w="'+encodeURIComponent(w.n)+'" style="cursor:pointer;display:flex;align-items:center;gap:12px">'
+        +'<span style="font-size:13px;width:110px;color:var(--color-text-secondary);display:flex;align-items:center;gap:5px"><i class="ti ti-chevron-right wchev" style="font-size:13px;transition:transform .15s" aria-hidden="true"></i>'+w.n+'</span>'
+        +'<div style="flex:1;height:8px;display:flex;background:var(--color-background-tertiary);border-radius:var(--border-radius-md);overflow:hidden">'
+          +'<div style="height:8px;width:'+nwid+'%;background:#534AB7"></div><div style="height:8px;width:'+owid+'%;background:#D85A30"></div></div>'
+        +'<span style="font-size:13px;font-weight:500;width:30px;text-align:right">'+tot+'</span></div>'
+      +'<div class="witems" style="display:none;padding:2px 0 8px 20px"></div>'
+    +'</div>';
+  }).join('');
+  box.querySelectorAll('.wrow').forEach(function(row){
+    row.addEventListener('click',function(){
+      var name=decodeURIComponent(row.dataset.w);
+      var itemsBox=row.parentNode.querySelector('.witems');
+      var chev=row.querySelector('.wchev');
+      var open=itemsBox.style.display==='none';
+      itemsBox.style.display=open?'block':'none';
+      if(chev) chev.style.transform=open?'rotate(90deg)':'none';
+      if(open && !itemsBox.dataset.filled){
+        var mine=(pubItems||[]).filter(function(i){return i.w===name;}).sort(function(a,b){return a.t.localeCompare(b.t);});
+        itemsBox.innerHTML=mine.length?mine.map(function(i,idx){return articleRow(i, idx===mine.length-1);}).join(''):'<div style="font-size:13px;color:var(--color-text-secondary);padding:6px 0">No linked articles.</div>';
+        itemsBox.dataset.filled='1';
+      }
+    });
+  });
+}
+var heroFilter=null;
+function highlightSeg(){
+  var sn=document.getElementById('seg-new'), so=document.getElementById('seg-opt');
+  if(sn) sn.style.boxShadow=heroFilter==='New'?'inset 0 0 0 2px #fff':'none';
+  if(so) so.style.boxShadow=heroFilter==='Optimize'?'inset 0 0 0 2px #fff':'none';
+}
+function showHeroDetail(action){
+  var box=document.getElementById('hero-detail');
+  if(heroFilter===action){ box.style.display='none'; heroFilter=null; highlightSeg(); return; }
+  heroFilter=action;
+  var items=((CUR&&CUR.pubItems)||[]).filter(function(i){return i.a===action;}).sort(function(a,b){return a.t.localeCompare(b.t);});
+  var label=action==='Optimize'?'Optimized':'New';
+  box.style.display='block';
+  box.innerHTML='<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:10px">'+label+' published \u00b7 '+items.length+'</div>'
+    +(items.length?items.map(function(i,idx){return articleRow(i, idx===items.length-1);}).join(''):'<div style="font-size:13px;color:var(--color-text-secondary)">No linked articles.</div>');
+  highlightSeg();
+}
 function renderDetail(stage){
   activeStage=stage;
   var st=LIVE.stages[stage];
@@ -178,12 +235,7 @@ function renderDetail(stage){
     +names.map(function(n){
       var am=avatarMeta(n);
       var rows=byW[n].map(function(i,idx){
-        var last=idx===byW[n].length-1;
-        var titleHtml = (i.url)
-          ? '<a href="'+i.url+'" target="_blank" rel="noopener" style="font-size:14px;color:var(--color-text-info);text-decoration:none" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">'+i.t+'</a>'
-          : '<span style="font-size:14px;color:var(--color-text-primary)">'+i.t+'</span>';
-        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:'+(last?'none':'0.5px solid var(--color-border-tertiary)')+'">'
-          +titleHtml+tag(i.a)+'</div>';
+        return articleRow(i, idx===byW[n].length-1);
       }).join('');
       return '<div style="margin-bottom:20px">'
         +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'
@@ -222,17 +274,8 @@ function renderLive(){
 function renderLiveSplit(){
   var box=document.getElementById('live-split');
   var ws=LIVE.writers||[];
-  if(!ws.length){box.innerHTML='<div style="font-size:13px;color:var(--color-text-secondary)">Nothing published in '+LIVE_MONTH_LABEL+' yet.</div>';return;}
-  var max=Math.max.apply(null,ws.map(function(w){return w.nw+w.op;}).concat([1]));
-  box.innerHTML='<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:12px">Published by writer \u00b7 '+LIVE.pub+' total</div>'
-    +ws.map(function(w){
-      var tot=w.nw+w.op; var nwid=Math.round(w.nw/max*100); var owid=Math.round(w.op/max*100);
-      return '<div style="display:flex;align-items:center;gap:12px;margin-bottom:11px">'
-        +'<span style="font-size:13px;width:110px;color:var(--color-text-secondary)">'+w.n+'</span>'
-        +'<div style="flex:1;height:8px;display:flex;background:var(--color-background-tertiary);border-radius:var(--border-radius-md);overflow:hidden">'
-          +'<div style="height:8px;width:'+nwid+'%;background:#534AB7"></div><div style="height:8px;width:'+owid+'%;background:#D85A30"></div></div>'
-        +'<span style="font-size:13px;font-weight:500;width:30px;text-align:right">'+tot+'</span></div>';
-    }).join('');
+  box.innerHTML='<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:12px">Published by writer \u00b7 '+LIVE.pub+' total</div><div id="live-split-rows" style="display:flex;flex-direction:column;gap:11px"></div>';
+  renderWriterBars(document.getElementById('live-split-rows'), ws, LIVE.pubItems, 'Nothing published in '+LIVE_MONTH_LABEL+' yet.');
 }
 var LIVE_MONTH_LABEL=LIVE_MONTH;
 function renderClosed(m){
@@ -248,20 +291,15 @@ function renderClosed(m){
     return;
   }
   document.getElementById('closed-sub').textContent=m+' closed \u00b7 '+d.pub+' published';
-  var rows=document.getElementById('closed-rows');
-  var max=Math.max.apply(null,d.writers.map(function(w){return w.nw+w.op;}).concat([1]));
-  rows.innerHTML=d.writers.map(function(w){
-    var tot=w.nw+w.op; var nwid=Math.round(w.nw/max*100); var owid=Math.round(w.op/max*100);
-    return '<div style="display:flex;align-items:center;gap:12px">'
-      +'<span style="font-size:13px;width:110px;color:var(--color-text-secondary)">'+w.n+'</span>'
-      +'<div style="flex:1;height:8px;display:flex;background:var(--color-background-tertiary);border-radius:var(--border-radius-md);overflow:hidden">'
-        +'<div style="height:8px;width:'+nwid+'%;background:#534AB7"></div><div style="height:8px;width:'+owid+'%;background:#D85A30"></div></div>'
-      +'<span style="font-size:13px;font-weight:500;width:30px;text-align:right">'+tot+'</span></div>';
-  }).join('');
+  renderWriterBars(document.getElementById('closed-rows'), d.writers, d.pubItems);
 }
 function render(m){
   setActive(m);
   var d = (m===LIVE_MONTH)?LIVE:CLOSED[m];
+  CUR = d || {pubItems:[]};
+  heroFilter=null;
+  var hd=document.getElementById('hero-detail'); if(hd) hd.style.display='none';
+  highlightSeg();
   if(!d){ document.getElementById('pub-month').textContent='in '+m; renderClosed(m); return; }
   var tot=d.new+d.opt||1;
   var pn=Math.round(d.new/tot*100), po=100-pn;
@@ -276,6 +314,11 @@ function render(m){
   if(m===LIVE_MONTH){LIVE_MONTH_LABEL=m;renderLive();}else{renderClosed(m);}
 }
 document.querySelectorAll('#month-tabs button').forEach(function(b){b.addEventListener('click',function(){render(b.dataset.m);});});
+(function(){
+  var sn=document.getElementById('seg-new'), so=document.getElementById('seg-opt');
+  if(sn){ sn.style.cursor='pointer'; sn.addEventListener('click',function(){showHeroDetail('New');}); }
+  if(so){ so.style.cursor='pointer'; so.addEventListener('click',function(){showHeroDetail('Optimize');}); }
+})();
 var cmpBtn=document.getElementById('cmp-btn');
 cmpBtn.addEventListener('click',function(){
   var p=document.getElementById('cmp-panel');
@@ -284,28 +327,37 @@ cmpBtn.addEventListener('click',function(){
   cmpBtn.innerHTML=(open?'<i class="ti ti-x" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Hide comparison':'<i class="ti ti-chart-bar" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Compare months');
 });
 function renderMoM(){
-  var box=document.getElementById('mom-bars'); if(!box) return;
+  var box=document.getElementById('mom-chart'); if(!box) return;
   var order=[].slice.call(document.querySelectorAll('#month-tabs button')).map(function(b){return b.dataset.m;});
   var series=order.map(function(m){
     var d=(m===LIVE_MONTH)?LIVE:CLOSED[m];
-    if(!d) return {m:m,nw:0,op:0,tot:0};
-    return {m:m,nw:d.new||0,op:d.opt||0,tot:(d.new||0)+(d.opt||0)};
+    return {m:m, nw:d?(d.new||0):0, op:d?(d.opt||0):0, tot:d?((d.new||0)+(d.opt||0)):0};
   });
-  var max=Math.max.apply(null,series.map(function(s){return s.tot;}).concat([1]));
-  var H=150;
-  box.innerHTML=series.map(function(s){
-    var bh=s.tot>0?Math.max(8,Math.round(s.tot/max*H)):0;
-    var oh=s.tot>0?Math.round(s.op/s.tot*bh):0;
-    var nh=bh-oh;
-    var bars=s.tot>0
-      ? (oh>0?'<div style="height:'+oh+'px;background:#D85A30;border-radius:4px 4px 0 0;"></div>':'')
-        +'<div style="height:'+nh+'px;background:#534AB7;border-radius:'+(oh>0?'0 0 4px 4px':'4px')+';"></div>'
-      : '';
-    return '<div style="flex:1; display:flex; flex-direction:column; align-items:center;">'
-      +'<div style="font-size:13px; font-weight:500; margin-bottom:6px;">'+s.tot+'</div>'
-      +'<div style="width:48px; display:flex; flex-direction:column; justify-content:flex-end; height:'+H+'px;">'+bars+'</div>'
-      +'<div style="font-size:13px; color:var(--color-text-secondary); margin-top:8px;">'+s.m+'</div></div>';
-  }).join('');
+  var W=720,H=250, padL=34,padR=18,padT=48,padB=32;
+  var plotW=W-padL-padR, plotH=H-padT-padB;
+  var maxV=Math.max.apply(null,series.map(function(s){return Math.max(s.nw,s.op);}).concat([1]));
+  maxV=Math.max(1,Math.ceil(maxV*1.15));
+  var n=series.length;
+  var X=function(i){ return n>1 ? padL + plotW*(i/(n-1)) : padL+plotW/2; };
+  var Y=function(v){ return padT + plotH - (v/maxV)*plotH; };
+  var pts=function(key){ return series.map(function(s,i){return X(i)+','+Y(s[key]);}).join(' '); };
+  var grid='';
+  for(var g=0;g<=2;g++){ var gv=maxV*g/2; var gy=Y(gv);
+    grid+='<line x1="'+padL+'" y1="'+gy+'" x2="'+(W-padR)+'" y2="'+gy+'" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>'
+      +'<text x="'+(padL-6)+'" y="'+(gy+3)+'" text-anchor="end" font-size="10" fill="var(--color-text-tertiary)">'+Math.round(gv)+'</text>';
+  }
+  var totals=series.map(function(s,i){return '<text x="'+X(i)+'" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="var(--color-text-primary)">'+s.tot+'</text>';}).join('');
+  var labels=series.map(function(s,i){return '<text x="'+X(i)+'" y="'+(H-10)+'" text-anchor="middle" font-size="12" fill="var(--color-text-secondary)">'+s.m+'</text>';}).join('');
+  var markers=function(key,color){ return series.map(function(s,i){return '<circle cx="'+X(i)+'" cy="'+Y(s[key])+'" r="3.5" fill="'+color+'"/>';}).join(''); };
+  var vlabels=function(key,color,dy){ return series.map(function(s,i){return '<text x="'+X(i)+'" y="'+(Y(s[key])+dy)+'" text-anchor="middle" font-size="10" font-weight="500" fill="'+color+'">'+s[key]+'</text>';}).join(''); };
+  box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">'
+    +grid
+    +'<polyline points="'+pts('nw')+'" fill="none" stroke="#534AB7" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
+    +'<polyline points="'+pts('op')+'" fill="none" stroke="#D85A30" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
+    +markers('nw','#534AB7')+markers('op','#D85A30')
+    +vlabels('nw','#534AB7',-8)+vlabels('op','#D85A30',15)
+    +totals+labels
+    +'</svg>';
 }
 renderMoM();
 render(LIVE_MONTH);
